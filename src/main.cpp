@@ -136,15 +136,21 @@ int main( int argc, char **argv )
 		{
 		    switch( event.type )
 			{
-			case SDL_VIDEORESIZE:
+			case SDL_WINDOWEVENT:
 			    /* handle resize event */
-			    surface = SDL_SetVideoMode( event.resize.w,event.resize.h, 32, videoFlags );
-			    if ( !surface )
-				{
-				    fprintf( stderr, "Could not get a surface after resize: %s\n", SDL_GetError( ) );
-				    Quit( 1 );
+			    //surface = SDL_SetVideoMode( event.resize.w,event.resize.h, 32, videoFlags );
+			    //if ( !surface )
+				//{
+				    //fprintf( stderr, "Could not get a surface after resize: %s\n", SDL_GetError( ) );
+				    //Quit( 1 );
+				//}
+			    //resizeWindow( event.resize.w, event.resize.h );
+				switch( event.window.event ){
+				case SDL_WINDOWEVENT_SIZE_CHANGED:
+				case SDL_WINDOWEVENT_MAXIMIZED:
+					resizeWindow( event.window.data1, event.window.data2 );
+					break;
 				}
-			    resizeWindow( event.resize.w, event.resize.h );
 			    break;
 			case SDL_KEYDOWN:
 			    /* handle key presses */
@@ -409,7 +415,9 @@ int main( int argc, char **argv )
 
 				/* Draw it to the screen */
 #ifndef __arm__
-				SDL_GL_SwapBuffers( );
+				//SDL_GL_SwapBuffers( );
+				/* Swap our back buffer to the front */
+				SDL_GL_SwapWindow(mainwindow);
 #else
 				EGLFlush();
 #endif

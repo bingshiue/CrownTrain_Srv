@@ -13,8 +13,8 @@
 #include <linux/rtc.h>
 #include <fcntl.h>
 #include <time.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_mixer.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include "game/gameRecordType.h"
 #include "game/gameEnum.h"
 #include "probability/probabilityEnum.h"
@@ -56,7 +56,7 @@ bool SDLInit(void);
 int  OpenGLInit(void);
 void OpenGLGetStatus(void);
 int  resizeWindow(int width, int height);
-void handleKeyPress(SDL_keysym *keysym);
+void handleKeyPress(SDL_Keysym *keysym);
 #endif
 bool SDLMixerInit(void);
 int  Load_Texture(void);
@@ -71,10 +71,12 @@ int Sync_System_Time(void);
 /*--------------------------*/
 
 /*--- Global Parameters ---*/
+SDL_Window *mainwindow; /* Our window handle */
+SDL_GLContext maincontext; /* Our opengl context handle */
 SDL_Surface *surface;/**< This is our SDL surface */
 int videoFlags;/**< Flags to pass to SDL_SetVideoMode */
 SDL_Event event;/**< used to collect events */
-const SDL_VideoInfo *videoInfo;/**< this holds some info about our display */
+//const SDL_VideoInfo *videoInfo;/**< this holds some info about our display */
 KEYEVENT key_event;/**< Key board input event */
 SERIALEVENT serial_event;/**< Serial port input event */
 MTRANDOM mtRandom;/**< Mersenne Twister Random */
@@ -116,43 +118,72 @@ bool SDLInit(void){
 	}
 
     /* Fetch the video info */
-    videoInfo = SDL_GetVideoInfo();
+    //videoInfo = SDL_GetVideoInfo();
 
-    if ( !videoInfo ){
-	    fprintf( stderr, "Video query failed: %s\n",SDL_GetError() );
-	    return false;
-	}
+    //if ( !videoInfo ){
+	    //fprintf( stderr, "Video query failed: %s\n",SDL_GetError() );
+	    //return false;
+	//}
+
+	//Use OpenGL 2.1
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+
+    /* Create our window centered at 512x512 resolution */
+    mainwindow = SDL_CreateWindow("CrownTrain_Srv", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+           1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    if (!mainwindow) /* Die if creation failed */{
+        printf("Unable to create window");
+        return false;
+    }
+
+
 
     /* the flags to pass to SDL_SetVideoMode */
-    videoFlags  = SDL_OPENGL;          /* Enable OpenGL in SDL */
-    videoFlags |= SDL_GL_DOUBLEBUFFER; /* Enable double buffering */
-    videoFlags |= SDL_HWPALETTE;       /* Store the palette in hardware */
-    videoFlags |= SDL_RESIZABLE;       /* Enable window resizing */
+    //videoFlags  = SDL_OPENGL;          /* Enable OpenGL in SDL */
+    //videoFlags |= SDL_GL_DOUBLEBUFFER; /* Enable double buffering */
+    //videoFlags |= SDL_HWPALETTE;       /* Store the palette in hardware */
+    //videoFlags |= SDL_RESIZABLE;       /* Enable window resizing */
 
     /* This checks to see if surfaces can be stored in memory */
-    if ( videoInfo->hw_available )
-	videoFlags |= SDL_HWSURFACE;
-    else
-	videoFlags |= SDL_SWSURFACE;
+    //if ( videoInfo->hw_available )
+	//videoFlags |= SDL_HWSURFACE;
+    //else
+	//videoFlags |= SDL_SWSURFACE;
 
     /* This checks if hardware blits can be done */
-    if ( videoInfo->blit_hw )
-    	videoFlags |= SDL_HWACCEL;
+    //if ( videoInfo->blit_hw )
+    	//videoFlags |= SDL_HWACCEL;
+
+    //checkSDLError(__LINE__);
+
+    /* Create our opengl context and attach it to our window */
+    maincontext = SDL_GL_CreateContext(mainwindow);
+	if( maincontext == NULL )
+	{
+		printf( "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError() );
+		return false;
+	}
+    //checkSDLError(__LINE__);
+
+    /* This makes our buffer swap syncronized with the monitor's vertical refresh */
+    SDL_GL_SetSwapInterval(1);
 
     /* Sets up OpenGL double buffering */
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
     /* get a SDL surface */
-    surface = SDL_SetVideoMode( SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP,videoFlags );
+    //surface = SDL_SetVideoMode( SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP,videoFlags );
 
     /* Verify there is a surface */
-    if ( !surface ){
-	    fprintf( stderr,  "Video mode set failed: %s\n", SDL_GetError() );
-	    return false;
-	}
+    //if ( !surface ){
+	    //fprintf( stderr,  "Video mode set failed: %s\n", SDL_GetError() );
+	    //return false;
+	//}
 
     //Set the window caption
-    SDL_WM_SetCaption( "CrownTrain_Srv", NULL );
+    //SDL_WM_SetCaption( "CrownTrain_Srv", NULL );
+    SDL_SetWindowTitle( mainwindow,"CrownTrain_Srv");
 
     //Set the cursor display disable
     SDL_ShowCursor(SDL_DISABLE);
@@ -251,7 +282,7 @@ int resizeWindow(int width, int height){
  * @brief function to handle key press events.
  * @param SDL Key Symbol
  */
-void handleKeyPress(SDL_keysym *keysym){
+void handleKeyPress(SDL_Keysym *keysym){
 
 	switch ( keysym->sym )
 	{
@@ -263,7 +294,7 @@ void handleKeyPress(SDL_keysym *keysym){
 	    /* F1 key was pressed
 	     * this toggles fullscreen mode
 	     */
-	    SDL_WM_ToggleFullScreen( surface );
+	    //SDL_WM_ToggleFullScreen( surface );
 	    break;
 #ifdef ENABLE_KEYBOARD_INPUT
 	/* 開始鍵(全停鍵,得分鍵) */
@@ -338,11 +369,14 @@ void handleKeyPress(SDL_keysym *keysym){
  */
 bool SDLMixerInit(void){
 
+#if 0
     int ret = Mix_Init(MIX_INIT_OGG);
     if((ret & MIX_INIT_OGG) != MIX_INIT_OGG){
         perror("failed to initialize OGG module.");
         return false;
     }
+#endif
+
     // initialize SDL_mixer
 #ifndef __arm__
     if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
